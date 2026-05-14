@@ -29,6 +29,7 @@ from services.scheduler import task_scheduler
 
 
 SLASH_COMMANDS = [
+    BotCommand(command="autoreply", description="Автоответы в Business: вкл/выкл"),
     BotCommand(command="memory", description="Память: вкл/выкл запоминания фактов"),
     BotCommand(command="network", description="Интернет: вкл/выкл поиск через Рой"),
     BotCommand(command="disclaimer", description="Подпись «🤖 Oblivion Assistant» в Business"),

@@ -19,6 +19,7 @@ from services.onboarding import ONBOARDING_DONE_REPLY, run_onboarding
 HELP_TEXT = """🌑 Oblivion Assistant — что умею
 
 — Команды
+/autoreply — автоответы в business (вкл/выкл)
 /memory — управление памятью (вкл/выкл)
 /network — интернет через Рой (вкл/выкл)
 /disclaimer — подпись «🤖 Oblivion Assistant» в business
@@ -66,6 +67,8 @@ from services.thinking import cleanup_placeholder, deliver_reply, thinking
 from skills.registry import SkillContext, call_skill
 from states import STATE_AWAITING_IDENTITY, STATE_AWAITING_NAME, STATE_READY
 from ui import (
+    autoreply_keyboard,
+    autoreply_panel_text,
     disclaimer_keyboard,
     disclaimer_panel_text,
     memory_keyboard,
@@ -111,6 +114,14 @@ async def on_owner_dm(message: Message) -> None:
         await message.answer(
             network_panel_text(enabled),
             reply_markup=network_keyboard(enabled),
+        )
+        return
+
+    if text == "/autoreply":
+        enabled = db.get_setting(owner_id, "business_auto_reply", False)
+        await message.answer(
+            autoreply_panel_text(enabled),
+            reply_markup=autoreply_keyboard(enabled),
         )
         return
 

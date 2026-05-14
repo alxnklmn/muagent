@@ -51,6 +51,12 @@ async def on_business_message(message: Message) -> None:
     user_id = message.from_user.id
     save_business_contact(owner_id, message, bc_id)
 
+    # auto-reply opt-in: если владелец не включил — молчим (контакт сам пишет владельцу,
+    # бот не вмешивается). DM-чат с ботом продолжает работать всегда.
+    if not db.get_setting(owner_id, "business_auto_reply", False):
+        log.debug("owner %d auto-reply OFF — skipping business reply", owner_id)
+        return
+
     if owner_record.get("state") != STATE_READY:
         log.info(
             "owner %d in state=%s — отвечаю с дефолтным промптом",

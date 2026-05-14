@@ -67,6 +67,44 @@ def sign_business_reply(text: str) -> str:
     return f"{text}\n\n🤖 {BOT_BRAND}"
 
 
+def autoreply_keyboard(enabled: bool) -> InlineKeyboardMarkup:
+    text = "Выключить автоответы" if enabled else "Включить автоответы"
+    action = "off" if enabled else "on"
+    return InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(text=text, callback_data=f"autoreply:{action}")]]
+    )
+
+
+def autoreply_panel_text(enabled: bool) -> str:
+    state = "включены" if enabled else "выключены"
+    body = (
+        f"автоответы в business-чатах: {state}.\n\n"
+        "когда ВКЛ — я автоматически отвечаю в твоих Business-чатах от твоего имени, "
+        "используя identity и контекст.\n\n"
+        "когда ВЫКЛ — Telegram Business остаётся подключён, но я молчу. "
+        "DM со мной работает в любом случае."
+    )
+    if not enabled:
+        body += (
+            "\n\n💡 после включения я отвечаю по умолчанию в твоём стиле (identity). "
+            "хочешь свой шаблон? скажи естественной фразой:\n"
+            "«отвечай всем коротко что я перезвоню»\n"
+            "«с work-контактами строго по делу, с family — тепло»"
+        )
+    return body
+
+
+def autoreply_enabled_followup() -> str:
+    return (
+        "✅ автоответы включены.\n\n"
+        "📌 теперь как:\n"
+        "• по умолчанию — отвечаю в твоём стиле, используя identity и теги контактов\n"
+        "• для конкретного контакта: «с @user всегда официально»\n"
+        "• временный режим: «если что говори всем что я ...»\n"
+        "• выключить обратно: /autoreply"
+    )
+
+
 def network_keyboard(enabled: bool) -> InlineKeyboardMarkup:
     text = "Выключить интернет" if enabled else "Включить интернет"
     action = "off" if enabled else "on"

@@ -8,6 +8,9 @@ from db import db
 from services.messaging import task_voice
 from services.outbound import send_pending_outbound
 from ui import (
+    autoreply_enabled_followup,
+    autoreply_keyboard,
+    autoreply_panel_text,
     disclaimer_keyboard,
     disclaimer_panel_text,
     memory_keyboard,
@@ -75,6 +78,26 @@ async def on_disclaimer_callback(callback: CallbackQuery) -> None:
             reply_markup=disclaimer_keyboard(enabled),
         )
     await callback.answer("дисклеймер включён" if enabled else "дисклеймер выключен")
+
+
+@dp.callback_query(F.data.in_({"autoreply:on", "autoreply:off"}))
+async def on_autoreply_callback(callback: CallbackQuery) -> None:
+    if not callback.from_user or not callback.data:
+        return
+
+    owner_id = callback.from_user.id
+    enabled = callback.data == "autoreply:on"
+    db.save_settings(owner_id, business_auto_reply=enabled)
+
+    if callback.message:
+        await callback.message.edit_text(
+            autoreply_panel_text(enabled),
+            reply_markup=autoreply_keyboard(enabled),
+        )
+        # дополнительное follow-up сообщение когда включили — объясняем как тонко настроить
+        if enabled:
+            await callback.message.answer(autoreply_enabled_followup())
+    await callback.answer("автоответы включены" if enabled else "автоответы выключены")
 
 
 @dp.callback_query(F.data.in_({"network:on", "network:off"}))

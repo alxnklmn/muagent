@@ -19,6 +19,7 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     "quiet_hours": {"from": "23:00", "to": "09:00"},
     "proactive_daily_budget": 2,
     "external_network_consent": False,  # разрешение на скиллы которые ходят в интернет (через swarm)
+    "business_auto_reply": False,  # автоматический ответ в business-чатах: opt-in через /autoreply
 }
 
 

@@ -8,7 +8,13 @@ import json
 
 from core import LLM_MODEL, MAX_TOOL_ROUNDS, bot, llm, log
 from db import db
-from skills.registry import SkillContext, call_skill, openai_tools, parse_tool_arguments
+from skills.registry import (
+    BUSINESS_SAFE_TOOLS,
+    SkillContext,
+    call_skill,
+    openai_tools,
+    parse_tool_arguments,
+)
 
 
 async def run_llm_with_tools(
@@ -19,7 +25,16 @@ async def run_llm_with_tools(
     progress_message: object | None = None,
 ) -> str:
     working_messages = list(messages)
-    tools = openai_tools() if owner_id is not None else []
+
+    # SECURITY: в business-режиме контакт может писать что угодно владельцу.
+    # ограничиваем set tools безопасным whitelist'ом (recall, task_add).
+    # иначе контакт мог бы заставить бота поменять identity / settings / status / facts.
+    if owner_id is None:
+        tools = []
+    elif source == "business":
+        tools = openai_tools(allowed_names=BUSINESS_SAFE_TOOLS)
+    else:
+        tools = openai_tools()
     calls_seen: list[str] = []  # для дебага: какие скиллы крутились
 
     for round_idx in range(MAX_TOOL_ROUNDS):

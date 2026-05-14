@@ -94,7 +94,16 @@ def load_skills() -> dict[str, Skill]:
 SKILLS = load_skills()
 
 
-def openai_tools() -> list[dict]:
+def openai_tools(allowed_names: set[str] | None = None) -> list[dict]:
+    """Список tools для function-calling LLM.
+
+    allowed_names: если задан — возвращаем только эти скиллы (whitelist).
+    Используется в business-режиме: чтобы контакт не мог дёргать
+    управляющие тулы владельца (update_settings, set_status, ...).
+    """
+    items = SKILLS.values()
+    if allowed_names is not None:
+        items = [s for s in items if s.name in allowed_names]
     return [
         {
             "type": "function",
@@ -104,8 +113,26 @@ def openai_tools() -> list[dict]:
                 "parameters": skill.schema,
             },
         }
-        for skill in SKILLS.values()
+        for skill in items
     ]
+
+
+# Безопасный набор tools для business-режима.
+# Контакт пишет в business-чат владельца. Бот отвечает от имени владельца.
+# В этом контексте контакт НЕ должен иметь возможность:
+#  - менять identity владельца
+#  - менять настройки бота
+#  - ставить/снимать статус
+#  - помечать сам себя в whitelist
+#  - заставлять бота слать сообщения третьим лицам
+#  - подкидывать факты в память (можно манипулировать)
+#  - отменять/создавать подписки
+#  - заставлять делать дорогие сетевые запросы (search/news)
+# Что разрешено:
+#  - recall    : бот может вспомнить факты о собеседнике для контекста
+#  - task_add  : контакт может попросить владельца что-то сделать,
+#                задача создаётся в owner's списке с пометкой кто попросил
+BUSINESS_SAFE_TOOLS: set[str] = {"recall", "task_add"}
 
 
 def tool_manifest_for_prompt() -> str:
