@@ -14,6 +14,51 @@ from parsers import (
 from prompting import build_owner_system_prompt
 from services.llm_runner import run_llm_with_tools
 from services.onboarding import ONBOARDING_DONE_REPLY, run_onboarding
+
+
+HELP_TEXT = """🌑 Oblivion Assistant — что умею
+
+— Команды
+/memory — управление памятью (вкл/выкл)
+/network — интернет через Рой (вкл/выкл)
+/disclaimer — подпись «🤖 Oblivion Assistant» в business
+/help — это сообщение
+
+— Естественным языком (без команд)
+
+память:
+• «запомни — артём мой партнёр»
+• «кто такой артём?»
+• «забудь про X»
+
+задачи:
+• «напомни через час купить молока»
+• «что у меня по делам?»
+• «готово 5» (закрыть задачу №5)
+
+статус (для business-чатов):
+• «я в лесу на неделю»
+• «уехал из страны на месяц»
+• «сплю до утра»
+• «вернулся»
+
+расписание:
+• «каждый день в 9 утра присылай новости про AI»
+• «отмени утреннюю сводку»
+
+интернет (после /network):
+• «найди статью про X»
+• «свежие новости про крипту»
+
+отправка контактам:
+• «напиши боссу что я опоздаю»
+→ я готовлю draft → ты подтверждаешь кнопкой
+
+контакты:
+• «@masha — моя девушка»
+• «с боссом всегда официально»
+
+просто пиши как удобно — я разберу что нужно."""
 from services.intents import classify_status_intent
 from services.outbound import send_pending_outbound
 from services.summarize import compress_owner_chat_if_needed, get_chat_summary
@@ -67,6 +112,10 @@ async def on_owner_dm(message: Message) -> None:
             network_panel_text(enabled),
             reply_markup=network_keyboard(enabled),
         )
+        return
+
+    if text in ("/help", "/start"):
+        await message.answer(HELP_TEXT)
         return
 
     if state in (STATE_AWAITING_NAME, STATE_AWAITING_IDENTITY):

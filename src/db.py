@@ -752,4 +752,12 @@ class SqliteDatabase:
             return dict(row) if row else None
 
 
-db = SqliteDatabase(Path(__file__).resolve().parent / "db.sqlite3")
+import os as _os
+
+# SQLITE_PATH позволяет указать абсолютный путь (для docker volume).
+# по умолчанию — рядом с db.py (для локальной разработки).
+_sqlite_path = _os.environ.get("SQLITE_PATH")
+if _sqlite_path:
+    db = SqliteDatabase(_sqlite_path)
+else:
+    db = SqliteDatabase(Path(__file__).resolve().parent / "db.sqlite3")

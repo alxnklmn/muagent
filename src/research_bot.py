@@ -30,8 +30,9 @@ from tavily import TavilyClient  # noqa: E402
 RESEARCH_BOT_TOKEN = os.environ["RESEARCH_BOT_TOKEN"]
 TAVILY_API_KEY = os.environ["TAVILY_API_KEY"]
 LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
+OUTBOUND_PROXY = (os.environ.get("OUTBOUND_PROXY") or "").strip() or None
+HUB_BOT_USERNAME = os.environ.get("HUB_BOT_USERNAME", "oblivionares_bot").lstrip("@")
 
-HUB_BOT_USERNAME = "oblivionares_bot"  # ждём сообщения только от него
 MAX_RESPONSE_CHARS = 4000  # telegram message limit 4096
 
 logging.basicConfig(
@@ -40,7 +41,16 @@ logging.basicConfig(
 )
 log = logging.getLogger("research-bot")
 
-bot = Bot(token=RESEARCH_BOT_TOKEN)
+# для tavily (requests-based) — выставляем env, requests подхватит HTTPS_PROXY
+if OUTBOUND_PROXY:
+    os.environ.setdefault("HTTPS_PROXY", OUTBOUND_PROXY)
+    os.environ.setdefault("HTTP_PROXY", OUTBOUND_PROXY)
+    log.info("OUTBOUND_PROXY active for tavily + aiogram")
+
+from aiogram.client.session.aiohttp import AiohttpSession  # noqa: E402
+
+_session = AiohttpSession(proxy=OUTBOUND_PROXY) if OUTBOUND_PROXY else AiohttpSession()
+bot = Bot(token=RESEARCH_BOT_TOKEN, session=_session)
 dp = Dispatcher()
 tavily = TavilyClient(api_key=TAVILY_API_KEY)
 

@@ -1,0 +1,48 @@
+# Дополнительные сервисы для checkron docker-compose стека.
+#
+# Применять через -f:
+#   cd ~/checkron
+#   sudo docker compose -f docker-compose.yml -f /path/to/muagent/deploy/docker-compose.muagent.yml up -d muagent-hub muagent-research
+#
+# Используется существующая сеть checkron (default), nginx, certbot.
+
+services:
+  muagent-hub:
+    build:
+      context: /home/tsroot/muagent
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on: [ss-local]
+    environment:
+      BOT_TOKEN: ${MUAGENT_BOT_TOKEN}
+      LLM_API_KEY: ${MUAGENT_LLM_API_KEY}
+      LLM_MODEL: ${MUAGENT_LLM_MODEL:-deepseek/deepseek-chat-v3.1}
+      LLM_BASE_URL: ${MUAGENT_LLM_BASE_URL:-https://openrouter.ai/api/v1}
+      OUTBOUND_PROXY: ${OUTBOUND_PROXY:-}
+      LOCAL_TZ: ${MUAGENT_LOCAL_TZ:-Europe/Moscow}
+      LOG_LEVEL: ${MUAGENT_LOG_LEVEL:-INFO}
+      BOT_MODE: webhook
+      WEBHOOK_URL: https://${MUAGENT_DOMAIN}
+      WEBHOOK_PATH: /webhook
+      WEBHOOK_PORT: "8080"
+      SQLITE_PATH: /app/data/db.sqlite3
+    volumes:
+      - muagent_data:/app/data
+    command: ["python", "bot.py"]
+
+  muagent-research:
+    build:
+      context: /home/tsroot/muagent
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on: [ss-local]
+    environment:
+      RESEARCH_BOT_TOKEN: ${MUAGENT_RESEARCH_BOT_TOKEN}
+      TAVILY_API_KEY: ${MUAGENT_TAVILY_API_KEY}
+      OUTBOUND_PROXY: ${OUTBOUND_PROXY:-}
+      HUB_BOT_USERNAME: ${MUAGENT_HUB_USERNAME:-oblivionares_bot}
+      LOG_LEVEL: ${MUAGENT_LOG_LEVEL:-INFO}
+    command: ["python", "research_bot.py"]
+
+volumes:
+  muagent_data:
