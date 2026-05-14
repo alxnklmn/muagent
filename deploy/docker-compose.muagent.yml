@@ -21,7 +21,7 @@ services:
       OUTBOUND_PROXY: ${OUTBOUND_PROXY:-}
       LOCAL_TZ: ${MUAGENT_LOCAL_TZ:-Europe/Moscow}
       LOG_LEVEL: ${MUAGENT_LOG_LEVEL:-INFO}
-      BOT_MODE: webhook
+      BOT_MODE: ${MUAGENT_BOT_MODE:-polling}
       WEBHOOK_URL: https://${MUAGENT_DOMAIN}
       WEBHOOK_PATH: /webhook
       WEBHOOK_PORT: "8080"
