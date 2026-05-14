@@ -142,9 +142,11 @@ async def run_onboarding(owner: dict, message_text: str) -> dict:
     try:
         return json.loads(raw)
     except json.JSONDecodeError:
-        log.warning("invalid JSON from onboarding LLM: %r", raw[:300])
+        # LLM иногда игнорит response_format=json_object и шлёт чистый текст.
+        # обычно это вменяемая follow-up фраза. используем её как reply и продолжаем.
+        log.warning("invalid JSON from onboarding LLM; using as plain reply: %r", raw[:200])
         return {
-            "reply": "что-то я ответил мусором. напиши ещё раз.",
+            "reply": raw or "понял. расскажи ещё.",
             "extracted_name": None,
             "narrative": None,
             "done": False,
