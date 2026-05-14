@@ -1,0 +1,38 @@
+[
+  {
+    "mood": "focus",
+    "title": "Massive Attack - Angel",
+    "url": "https://www.youtube.com/watch?v=hbe3CQamF8k",
+    "note": "тёмный фокус, когда надо собраться и не шуметь лишним"
+  },
+  {
+    "mood": "focus",
+    "title": "Trent Reznor & Atticus Ross - Hand Covers Bruise",
+    "url": "https://www.youtube.com/watch?v=9SBNCYkSceU",
+    "note": "холодная концентрация без лишних слов"
+  },
+  {
+    "mood": "calm",
+    "title": "Nujabes - Aruarian Dance",
+    "url": "https://www.youtube.com/watch?v=vR-UqOPqGzI",
+    "note": "мягко выровнять голову"
+  },
+  {
+    "mood": "night",
+    "title": "Burial - Archangel",
+    "url": "https://www.youtube.com/watch?v=8k_f2QK77ew",
+    "note": "ночной режим, город где-то за окном"
+  },
+  {
+    "mood": "drive",
+    "title": "The Prodigy - Voodoo People (Pendulum Remix)",
+    "url": "https://www.youtube.com/watch?v=XQEBzauVIlA",
+    "note": "если надо встряхнуться и перестать быть мебелью"
+  },
+  {
+    "mood": "done",
+    "title": "Daft Punk - Aerodynamic",
+    "url": "https://www.youtube.com/watch?v=L93-7vRfxNs",
+    "note": "задача закрыта, можно чуть победно"
+  }
+]
