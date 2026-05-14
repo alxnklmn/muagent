@@ -18,6 +18,7 @@ from core import bot, log
 # whitelist специалистов: имя → @username (без @ в коде, добавляется при отправке)
 SPECIALISTS: dict[str, str] = {
     "research": "oblvhordex1_bot",  # web search + news через Tavily
+    "video": "oblvhordex2_bot",  # yt-dlp Instagram/TikTok/YouTube → owner direct
 }
 
 # pending requests: request_id → Future (set_result когда придёт ответ)

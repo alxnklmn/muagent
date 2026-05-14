@@ -1,5 +1,10 @@
 FROM python:3.12-slim
 
+# ffmpeg нужен video-bot-у для yt-dlp merge (когда видео из отдельных потоков).
+# для hub / research_bot — лишний вес, но он минимальный (~70 MB).
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 # зависимости отдельным слоем — кешируется между билдами кода
