@@ -68,7 +68,7 @@ async def run_polling() -> None:
         await bot.session.close()
 
 
-async def _on_startup_webhook(_bot) -> None:
+async def _on_startup_webhook() -> None:
     await _setup_bot()
     if WEBHOOK_URL:
         full_url = f"{WEBHOOK_URL.rstrip('/')}{WEBHOOK_PATH}"
