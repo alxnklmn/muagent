@@ -135,11 +135,12 @@ def openai_tools(allowed_names: set[str] | None = None) -> list[dict]:
 BUSINESS_SAFE_TOOLS: set[str] = {"recall", "task_add"}
 
 
-def tool_manifest_for_prompt() -> str:
+def tool_manifest_for_prompt(allowed_names: set[str] | None = None) -> str:
+    items = SKILLS.values()
+    if allowed_names is not None:
+        items = [s for s in items if s.name in allowed_names]
     lines = []
-    for skill in SKILLS.values():
-        # сжимаем мульти-строчные описания в одну линию для манифеста.
-        # полное описание всё равно уходит в JSON schema через openai_tools().
+    for skill in items:
         compact_desc = " ".join(skill.description.split())
         lines.append(
             f"- {skill.name}: {compact_desc}; "
