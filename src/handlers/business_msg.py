@@ -1,6 +1,13 @@
 """Обработчик business_message — отвечает от имени владельца в его Business-чатах."""
 
 from aiogram import F
+from aiogram.exceptions import (
+    TelegramBadRequest,
+    TelegramForbiddenError,
+    TelegramNetworkError,
+    TelegramRetryAfter,
+    TelegramServerError,
+)
 from aiogram.types import Message
 
 from core import MAX_HISTORY, bot, dp, log
@@ -105,8 +112,32 @@ async def on_business_message(message: Message) -> None:
     if owner_id_for_prompt and db.get_setting(owner_id, "disclaimer", False):
         outgoing_text = sign_business_reply(reply)
 
-    await bot.send_message(
-        chat_id=message.chat.id,
-        text=outgoing_text,
-        business_connection_id=bc_id,
-    )
+    try:
+        await bot.send_message(
+            chat_id=message.chat.id,
+            text=outgoing_text,
+            business_connection_id=bc_id,
+        )
+    except TelegramBadRequest as e:
+        msg = str(e).lower()
+        if "business_peer_invalid" in msg or "business_peer_usage_missing" in msg:
+            log.warning(
+                "cannot reply in business chat (peer excluded or no business access): "
+                "owner=%d contact=%d — %s",
+                owner_id, message.chat.id, e,
+            )
+        elif "chat not found" in msg:
+            log.warning("chat not found: owner=%d contact=%d", owner_id, message.chat.id)
+        else:
+            log.warning("telegram bad request on business reply: %s", e)
+    except TelegramForbiddenError as e:
+        log.warning(
+            "forbidden to send business reply (owner=%d contact=%d): %s",
+            owner_id, message.chat.id, e,
+        )
+    except TelegramRetryAfter as e:
+        log.warning("rate limited on business reply: retry after %ds", e.retry_after)
+    except (TelegramNetworkError, TelegramServerError) as e:
+        log.warning("telegram network/server error on business reply: %s", e)
+    except Exception:
+        log.exception("unexpected error on business reply (owner=%d)", owner_id)
