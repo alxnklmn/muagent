@@ -32,3 +32,6 @@ sessions/
 .idea/
 .vscode/
 *.swp
+
+# Claude Code worktrees / state
+.claude/
