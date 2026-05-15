@@ -59,6 +59,11 @@ HELP_TEXT = """🌑 Oblivion Assistant — что умею
 • «@masha — моя девушка»
 • «с боссом всегда официально»
 
+режим ответов per-contact:
+• «с @user сначала спрашивай меня» — draft (по умолчанию для untagged)
+• «с боссом отвечай сам» — auto (включается при tagging)
+• «не отвечай маме» — silent
+
 просто пиши как удобно — я разберу что нужно."""
 from services.intents import classify_status_intent
 from services.outbound import send_pending_outbound
@@ -92,6 +97,43 @@ async def on_owner_dm(message: Message) -> None:
 
     state = owner.get("state")
     text = message.text.strip()
+
+    # custom-reply flow: владелец нажал «✏️ Свой текст» под draft.
+    # следующее текстовое сообщение от него уходит выбранному контакту как есть.
+    custom_target = owner.get("custom_reply_target")
+    if custom_target and not text.startswith("/"):
+        contact_id = int(custom_target)
+        contact = db.get_contact(owner_id, contact_id) or {}
+        bc_id = (contact.get("business_connection_id") or owner.get("business_connection_id"))
+        if not bc_id:
+            await message.answer("не нашёл business_connection для отправки. отмена.")
+            db.save_owner(owner_id, custom_reply_target=None)
+            return
+        try:
+            await bot.send_chat_action(chat_id=message.chat.id, action="typing")
+        except Exception:
+            pass
+        try:
+            await bot.send_message(
+                chat_id=contact.get("chat_id") or contact_id,
+                text=text,
+                business_connection_id=bc_id,
+            )
+        except Exception as e:
+            log.exception("custom reply send failed")
+            await message.answer(f"не отправил: {type(e).__name__}. {e}")
+            db.save_owner(owner_id, custom_reply_target=None)
+            return
+        label = (
+            f"@{contact['username']}"
+            if contact.get("username")
+            else (contact.get("full_name") or str(contact_id))
+        )
+        await message.answer(f"✅ отправил {label}: {text[:150]}")
+        # очищаем pending_draft и state
+        db.save_contact(owner_id, contact_id, pending_draft=None)
+        db.save_owner(owner_id, custom_reply_target=None)
+        return
 
     if text == "/memory":
         enabled = db.get_setting(owner_id, "memory_consent", False)

@@ -92,6 +92,13 @@ async def handle(args, ctx):
     if not fields:
         return {"ok": False, "error": "nothing_to_update"}
 
+    # tagging — это сигнал доверия. если контакт ещё untagged и в draft-режиме,
+    # автоматически переключаем в auto (быстрые ответы без подтверждения).
+    current_mode = (contact.get("reply_mode") or "").strip().lower()
+    if current_mode not in ("auto", "silent"):
+        # был draft или не задан — переключаем в auto
+        fields["reply_mode"] = "auto"
+
     ctx.db.save_contact(ctx.owner_id, contact_id, **fields)
     return {
         "ok": True,
@@ -100,4 +107,5 @@ async def handle(args, ctx):
         "tags": fields.get("tags", contact.get("tags")),
         "relationship": fields.get("relationship", contact.get("relationship")),
         "voice_notes": fields.get("voice_notes", contact.get("voice_notes")),
+        "reply_mode": fields.get("reply_mode", current_mode or "draft"),
     }

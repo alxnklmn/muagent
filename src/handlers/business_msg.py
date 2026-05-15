@@ -13,6 +13,7 @@ from aiogram.types import Message
 from core import MAX_HISTORY, bot, dp, log
 from db import db
 from prompting import build_business_system_prompt, build_status_reminder
+from services.draft import reply_mode_for_contact, store_draft_and_notify_owner
 from services.intents import classify_silence
 from services.llm_runner import run_llm_with_tools
 from services.outbound import save_business_contact
@@ -124,6 +125,29 @@ async def on_business_message(message: Message) -> None:
     if owner_id_for_prompt and db.get_setting(owner_id, "disclaimer", False):
         outgoing_text = sign_business_reply(reply)
 
+    # Draft mode: проверяем reply_mode контакта.
+    # - auto: шлём сразу (как раньше)
+    # - draft: НЕ шлём контакту, сохраняем pending и уведомляем owner-а в DM с кнопками
+    # - silent: не шлём и не уведомляем (контакт у нас вообще игнорим)
+    contact_full = db.get_contact(owner_id, message.chat.id) or {}
+    mode = reply_mode_for_contact(contact_full)
+
+    if mode == "silent":
+        log.info("contact %d reply_mode=silent — discarding draft", message.chat.id)
+        return
+
+    if mode == "draft":
+        await store_draft_and_notify_owner(
+            owner_id=owner_id,
+            contact_id=message.chat.id,
+            contact=contact_full,
+            source_text=message.text,
+            draft_text=outgoing_text,
+            bc_id=bc_id,
+        )
+        return
+
+    # mode == 'auto' — старый путь: шлём контакту напрямую
     try:
         await bot.send_message(
             chat_id=message.chat.id,

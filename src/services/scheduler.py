@@ -36,6 +36,12 @@ async def task_scheduler() -> None:
                 )
             await proactive_tick()
             await recurring_jobs_tick()
+            # автоотправка зависших draft-ов > 5 мин
+            try:
+                from services.draft import auto_send_overdue_drafts
+                await auto_send_overdue_drafts()
+            except Exception:
+                log.exception("auto-send overdue drafts failed")
         except asyncio.CancelledError:
             raise
         except Exception:

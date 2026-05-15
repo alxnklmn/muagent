@@ -5,6 +5,11 @@ from aiogram.types import CallbackQuery
 
 from core import dp, log
 from db import db
+from services.draft import (
+    cancel_pending_draft,
+    deliver_pending_draft,
+    switch_to_auto_and_deliver,
+)
 from services.messaging import task_voice
 from services.outbound import send_pending_outbound
 from ui import (
@@ -115,6 +120,65 @@ async def on_network_callback(callback: CallbackQuery) -> None:
             reply_markup=network_keyboard(enabled),
         )
     await callback.answer("интернет включён" if enabled else "интернет выключен")
+
+
+@dp.callback_query(F.data.startswith("draft:"))
+async def on_draft_callback(callback: CallbackQuery) -> None:
+    if not callback.from_user or not callback.data:
+        return
+
+    owner_id = callback.from_user.id
+    parts = callback.data.split(":", 2)
+    if len(parts) != 3:
+        await callback.answer("битый callback", show_alert=True)
+        return
+    _, action, contact_id_str = parts
+    try:
+        contact_id = int(contact_id_str)
+    except ValueError:
+        await callback.answer("битый id", show_alert=True)
+        return
+
+    if action == "send":
+        ok, msg = await deliver_pending_draft(owner_id, contact_id, via_callback=True)
+        if callback.message:
+            await callback.message.edit_reply_markup(reply_markup=None)
+        await callback.answer(msg[:200])
+        return
+
+    if action == "cancel":
+        msg = await cancel_pending_draft(owner_id, contact_id)
+        if callback.message:
+            await callback.message.edit_reply_markup(reply_markup=None)
+        await callback.answer(msg[:200])
+        return
+
+    if action == "auto":
+        msg = await switch_to_auto_and_deliver(owner_id, contact_id)
+        if callback.message:
+            await callback.message.edit_reply_markup(reply_markup=None)
+        await callback.answer(msg[:200])
+        return
+
+    if action == "custom":
+        # переводим owner в state «следующее сообщение → custom reply для этого контакта»
+        db.save_owner(owner_id, custom_reply_target=contact_id)
+        contact = db.get_contact(owner_id, contact_id) or {}
+        label = (
+            f"@{contact['username']}"
+            if contact.get("username")
+            else (contact.get("full_name") or str(contact_id))
+        )
+        if callback.message:
+            await callback.message.edit_reply_markup(reply_markup=None)
+            await callback.message.answer(
+                f"✏️ ок, напиши свой текст для {label} — следующее твоё сообщение "
+                "отправится ему как есть."
+            )
+        await callback.answer("жду свой текст")
+        return
+
+    await callback.answer("неизвестное действие")
 
 
 @dp.callback_query(F.data.in_({"outbound:send", "outbound:cancel"}))
