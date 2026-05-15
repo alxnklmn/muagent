@@ -52,6 +52,72 @@ scopes — только если явно: «скажи коллегам» → [
 если сомневаешься — is_status=false. лучше пропустить чем сломать обычный разговор."""
 
 
+SILENCE_INTENT_SYSTEM = """ты классификатор: стоит ли отвечать на сообщение в business-чате.
+
+владелец Oblivion Assistant занят, бот отвечает за него. но не на всё нужно отвечать —
+короткие подтверждения, реакции, эмодзи без вопроса лучше пропустить, чтобы не выглядеть навязчиво.
+
+верни СТРОГО JSON, без markdown:
+{
+  "deserves_reply": true | false,
+  "reason": "одной фразой почему"
+}
+
+deserves_reply=false (НЕ отвечать) когда сообщение:
+- односложное подтверждение: «ок», «оки», «окей», «понял», «принято», «ясно», «угу», «да»
+- благодарность: «спасибо», «спс», «благодарю», «thx», «thanks»
+- эмодзи или стикер без текста или только эмодзи: «👍», «🙏», «✅», «❤️», «😊»
+- междометия: «лол», «ха», «хах», «😂», «🤣»
+- закрывающее «всё», «договорились», «хорошо», «бывай», «давай»
+- односложное «нет», «не надо», «понятно»
+
+deserves_reply=true (ОТВЕТИТЬ) когда:
+- приветствие / открытие диалога: «привет», «здарова», «добрый день», «алло», «ауу» — это попытка начать общение, надо ответить
+- вопрос (есть «?» или вопросительное слово: что/где/когда/как/почему/кто/зачем/сколько)
+- просьба что-то сделать или передать
+- содержательное сообщение с информацией
+- эмоциональное сообщение (сложно проигнорировать)
+- ссылка / медиа (вероятно требуется реакция)
+
+если сомневаешься — true. лучше ответить чем оставить контакта в подвешенном состоянии."""
+
+
+async def classify_silence(text: str) -> bool:
+    """Stоит ли отвечать на это сообщение? True если да.
+
+    Лёгкий single-purpose JSON-вызов перед основным LLM-passом —
+    спасает от шумных «ок», «👍», «спасибо». Если LLM упал — fallback True
+    (лучше ответить лишнего чем игнорировать).
+    """
+    # пустые и совсем короткие — отдельной логикой без LLM
+    cleaned = text.strip()
+    if not cleaned:
+        return False
+
+    try:
+        resp = await llm.chat.completions.create(
+            model=LLM_MODEL,
+            messages=[
+                {"role": "system", "content": SILENCE_INTENT_SYSTEM},
+                {"role": "user", "content": text},
+            ],
+            temperature=0,
+            response_format={"type": "json_object"},
+        )
+        raw = (resp.choices[0].message.content or "{}").strip()
+        parsed = json.loads(raw)
+        result = bool(parsed.get("deserves_reply", True))
+        if not result:
+            log.info("silence: skipping reply, reason=%r", parsed.get("reason"))
+        return result
+    except json.JSONDecodeError:
+        log.warning("silence classifier returned non-json")
+        return True
+    except Exception:
+        log.exception("silence classifier failed")
+        return True
+
+
 async def classify_status_intent(text: str) -> dict | None:
     """Single-purpose классификатор статусных намерений.
 

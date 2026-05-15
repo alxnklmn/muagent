@@ -13,6 +13,7 @@ from aiogram.types import Message
 from core import MAX_HISTORY, bot, dp, log
 from db import db
 from prompting import build_business_system_prompt, build_status_reminder
+from services.intents import classify_silence
 from services.llm_runner import run_llm_with_tools
 from services.outbound import save_business_contact
 from services.thinking import thinking
@@ -55,6 +56,11 @@ async def on_business_message(message: Message) -> None:
     # бот не вмешивается). DM-чат с ботом продолжает работать всегда.
     if not db.get_setting(owner_id, "business_auto_reply", False):
         log.debug("owner %d auto-reply OFF — skipping business reply", owner_id)
+        return
+
+    # silence detector: спасает от шума «ок», «👍», «спасибо». один маленький LLM-вызов
+    # перед дорогим основным passом. логирует причину пропуска.
+    if not await classify_silence(message.text):
         return
 
     if owner_record.get("state") != STATE_READY:
